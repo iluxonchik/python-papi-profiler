@@ -51,20 +51,67 @@ def collect_metrics(files):
                     res[metric_name][cipher_id_name][measurment_name] = value_dict
     return res
 
-def print_metrics(metrics):
+def print_metrics(metrics, selected_metrics, is_print_list):
     #import pdb; pdb.set_trace()
+    if selected_metrics:
+        metrics = {name : metrics[name] for name in selected_metrics}
+    mes_virttime_avg = []
+    mes_cycles_avg = []
     for metric_name, cipher_metric in metrics.items():
         print(metric_name)
-        for cipher_name, measurments in cipher_metric.items():
+        ciphers_order_1 = [
+                            'PSK',
+                            'RSA-PSK',
+                            'RSA',
+                            'ECDH-RSA',
+                            'ECDH-ECDSA',
+                            'ECDHE-PSK',
+                            'ECDHE-RSA',
+                            'ECDHE-ECDSA',
+                            'DHE-PSK',
+                            'DHE-RSA',
+                          ]
+        cipher_names_order_2 = [
+                              'PSK',
+                              'ECDHE-PSK',
+                              'DHE-PSK',
+                              'ECDH-RSA',
+                              'ECDHE-RSA',
+                              'DHE-RSA',
+                              'RSA',
+                              'RSA-PSK',
+                              'ECDH-ECDSA',
+                              'ECDHE-ECDSA'
+                              ]
+        cipher_names_order = ciphers_order_2
+
+        for cipher_name in cipher_names_order:
             print('\t' + cipher_name)
+            measurments = cipher_metric[cipher_name]
+
             for measurment_name, values in measurments.items():
+                if measurment_name == 'virttime':
+                    mes_virttime_avg.append(values['avg'])
+                elif measurment_name == 'virtcyc':
+                    mes_cycles_avg.append(values['avg'])
+
                 avg_rnd = round(values['avg'])
                 stdev_rnd = round(values['stdev'])
                 print('\t'*2 + measurment_name)
                 print('\t'*3 + f'AVG: {avg_rnd}' )
-                #print('\t'*3 + f'STD: {stdev_rnd}' )
+                print('\t'*3 + f'STD: {stdev_rnd}' )
+        if is_print_list:
+            print_green('** Virtual Time Average List**')
+            for value in mes_virttime_avg:
+                print(round(value))
+            print('')
+            print_green('** Virtual Cycles Average List**')
+            for value in mes_cycles_avg:
+                print(round(value))
 
-def run(ciphers, path, is_client, is_server, is_verbose):
+
+def run(ciphers, path, is_client, is_server, chosen_measurments, 
+        is_print_list, is_verbose):
     SERVER_CALLGRIND_OUT_FILE = '{}/server.papi.out.{}.{}.{}'
     CLIENT_CALLGRIND_OUT_FILE = '{}/client.papi.out.{}.{}.{}'
     PROFILE_RESULTS_SRV = {}
@@ -77,7 +124,7 @@ def run(ciphers, path, is_client, is_server, is_verbose):
     all_files = [join(path, f) for f in listdir(path) if isfile(join(path, f)) and f.startswith(entity)]
 
     collected_metrics = collect_metrics(all_files)
-    print_metrics(collected_metrics)
+    print_metrics(collected_metrics, chosen_measurments, is_print_list)
 
     #import pdb; pdb.set_trace()
 
@@ -135,6 +182,11 @@ if __name__ == '__main__':
                         action='store_true', help='present client metrics')
     group.add_argument('-s', '--server', default=False, action='store_true', 
                         help='present server metrics')
+    parser.add_argument('-m', '--metrics', nargs='+', help='show the '
+                       'selected metric(s) only', default=[] )
+    parser.add_argument('-p', '--print', help='print metrics list at the '
+                        'end. Useful for copy/paste to Excel',
+                        default=False, action='store_true')
     parser.add_argument('-v', '--verbose', action='store_true', 
                         default=False, help='enable verbose output')
 
@@ -144,5 +196,7 @@ if __name__ == '__main__':
         args.path,
         args.client,
         args.server,
+        args.metrics,
+        args.print,
         args.verbose
         )
