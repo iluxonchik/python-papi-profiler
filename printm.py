@@ -71,7 +71,7 @@ def print_metrics(metrics, selected_metrics, is_print_list):
                             'DHE-PSK',
                             'DHE-RSA',
                           ]
-        cipher_names_order_2 = [
+        ciphers_order_2 = [
                               'PSK',
                               'ECDHE-PSK',
                               'DHE-PSK',
